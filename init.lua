@@ -16,16 +16,31 @@ return {
       --   ["remote3"] = "github_user", -- GitHub user assume AstroNvim fork
     },
   },
-
   -- Set colorscheme to use
   colorscheme = "astrodark",
-
+  dap = {
+    adapters = {
+      godot = {
+        type = "server",
+        host = "127.0.0.1",
+        port = "6006",
+      },
+    },
+    configurations = {
+      gdscript = {
+        type = "godot",
+        request = "lauch",
+        name = "Launch scene",
+        project = "${workspaceFolder}",
+        launch_scene = true,
+      },
+    },
+  },
   -- Diagnostics configuration (for vim.diagnostics.config({...})) when diagnostics are on
   diagnostics = {
     virtual_text = true,
     underline = true,
   },
-
   lsp = {
     -- customize lsp formatting options
     formatting = {
@@ -49,10 +64,17 @@ return {
     },
     -- enable servers that you already have installed without mason
     servers = {
-      -- "pyright"
+      "gdscript",
+    },
+    config = {
+      gdscript = function()
+        return {
+          cmd = vim.lsp.rpc.connect("127.0.0.1", 6005),
+          filetypes = { "gd", "gdscript", "gdscript3" },
+        }
+      end,
     },
   },
-
   -- Configure require("lazy").setup() options
   lazy = {
     defaults = { lazy = true },
@@ -63,7 +85,42 @@ return {
       },
     },
   },
-
+  plugins = {
+    {
+      -- override nvim-cmp plugin
+      "hrsh7th/nvim-cmp",
+      -- override the options table that is used in the `require("cmp").setup()` call
+      opts = function(_, opts)
+        -- opts parameter is the default options table
+        -- the function is lazy loaded so cmp is able to be required
+        local cmp = require "cmp"
+        cmp.mapping["<C-Space>"] = cmp.mapping.complete()
+        cmp.mapping["<Tab>"] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            local _ = cmp.get_selected_entry() or cmp.select_next_item { behavior = cmp.SelectBehavior.Select }
+            cmp.confirm()
+          elseif luasnip.expand_or_jumpable() then
+            luasnip.expand_or_jump()
+          elseif has_words_before() then
+            cmp.complete()
+          else
+            fallback()
+          end
+        end, { "i", "s" })
+        cmp.mapping["<S-Tab>"] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            cmp.select_prev_item()
+          elseif luasnip.jumpable(-1) then
+            luasnip.jump(-1)
+          else
+            fallback()
+          end
+        end, { "i", "s" })
+        cmp.mapping["<CR>"] = cmp.mapping.confirm { select = true }
+        return opts
+      end,
+    },
+  },
   -- This function is run last and is a good place to configuring
   -- augroups/autocommands and custom filetypes also this just pure lua so
   -- anything that doesn't fit in the normal config locations above can go here
