@@ -9,6 +9,7 @@ return {
   },
   {
     "SeniorMars/typst.nvim",
-    event = "BufEnter",
+    event = "BufEnter *.typst",
   },
+  { "pocco81/auto-save.nvim", event = { "InsertLeave", "TextChanged" } },
 }
